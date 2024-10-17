@@ -28,7 +28,7 @@ def get_court_reservation_on_schedule(username: str, password: str):
             password (str): _description_
     """
 
-    timestamp = "00:00"
+    timestamp = "00:01"
     schedule.every().day.at(timestamp).do(get_court_reservation, username, password)
     print(f"Request court reservation every day at {timestamp}")
     while True:
