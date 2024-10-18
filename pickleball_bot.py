@@ -3,7 +3,7 @@ import argparse
 import json
 from termcolor import colored
 import datetime as DT
-import schedule
+from scheduler import Scheduler
 import time
 
 
@@ -28,11 +28,18 @@ def get_court_reservation_on_schedule(username: str, password: str):
             password (str): _description_
     """
 
+    tz_sf = DT.timezone(DT.timedelta(hours=-7))
+
+    schedule = Scheduler(tzinfo=DT.timezone.utc)
+
     timestamp = "00:01"
-    schedule.every().day.at(timestamp).do(get_court_reservation, username, password)
+    schedule.daily(DT.time(hour=0, minute=0, second=1, tzinfo=tz_sf), get_court_reservation, args=(username, password))
+    
+    print(schedule)
+
     print(f"Request court reservation every day at {timestamp}")
     while True:
-        schedule.run_pending()
+        schedule.exec_jobs()
         time.sleep(1)
 
 
