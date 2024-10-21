@@ -20,7 +20,7 @@ def get_date_week_from_today_string():
     return week_future
 
 
-def get_court_reservation_on_schedule(username: str, password: str):
+def get_court_reservation_on_schedule(username: str, password: str, time_slot):
     """_summary_
 
     Args:
@@ -28,12 +28,16 @@ def get_court_reservation_on_schedule(username: str, password: str):
             password (str): _description_
     """
 
+    
+    print("verifying your login information")
+    verify_login(username, password)
+
     tz_sf = DT.timezone(DT.timedelta(hours=-7))
 
     schedule = Scheduler(tzinfo=DT.timezone.utc)
 
     timestamp = "00:01"
-    schedule.daily(DT.time(hour=0, minute=0, second=1, tzinfo=tz_sf), get_court_reservation, args=(username, password))
+    schedule.daily(DT.time(hour=0, minute=0, second=1, tzinfo=tz_sf), get_court_reservation, args=(username, password, time_slot))
     
     print(schedule)
 
@@ -43,7 +47,30 @@ def get_court_reservation_on_schedule(username: str, password: str):
         time.sleep(1)
 
 
-def get_court_reservation(username: str, password: str):
+def verify_login(username: str, password: str):
+    payload = f"backTo=stanfordtennis.clublocker.com&customLogin=stanfordtennis&username={username}%40stanford.edu&password={password}"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Cookie": "USSQ-API-SESSION=s%3A_R5-cmtx4Rpftj_TeZVpgfxCw-oEz7WY.kJH3RlHC0u2j%2BAbnTRuQABwew70JetPwfRi9NSbyajw",
+    }
+
+    response = requests.request(
+        "POST", LOGIN_URL, headers=headers, data=payload, allow_redirects=False
+    )
+
+    try:
+        access_token = response.text.split("access_token=")[1].split("&")[0]
+    except Exception as e:
+        print(
+            colored("Failed to login. Please check your username and password.", "red")
+        )
+        exit()
+
+    print(colored("Successfully logged in!", "green"))
+
+
+
+def get_court_reservation(username: str, password: str, slot: int):
     """_summary_
 
     Args:
@@ -71,6 +98,11 @@ def get_court_reservation(username: str, password: str):
 
     print(colored("Successfully logged in!", "green"))
 
+    if slot == 0:
+        slot = "20:00-21:00"
+    elif slot == 1:
+        slot = "21:00-22:00"
+
     # =========
     payload = json.dumps(
         {
@@ -79,7 +111,7 @@ def get_court_reservation(username: str, password: str):
             "clubId": 13911,
             "courtId": 3988,
             "date": get_date_week_from_today_string(),
-            "slot": "20:00-21:00",
+            "slot": slot,
             "isPrivate": True,
             "notes": [],
             "players": [
@@ -132,7 +164,8 @@ def get_court_reservation(username: str, password: str):
 parser = argparse.ArgumentParser(description="Pickleball Bot")
 parser.add_argument("--username", type=str, help="Username for clublocker")
 parser.add_argument("--password", type=str, help="Password for clublocker")
+parser.add_argument("--slot", type=int, help="0 for the 8-9 slot 1 for the 9-10 slot")
 
 args = parser.parse_args()
 
-get_court_reservation_on_schedule(args.username, args.password)
+get_court_reservation_on_schedule(args.username, args.password, args.slot)
