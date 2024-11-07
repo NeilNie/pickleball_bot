@@ -4,6 +4,7 @@ import json
 from termcolor import colored
 import datetime as DT
 from scheduler import Scheduler
+from scheduler.trigger.core import Tuesday
 import time
 
 
@@ -36,12 +37,10 @@ def get_court_reservation_on_schedule(username: str, password: str, time_slot):
 
     schedule = Scheduler(tzinfo=DT.timezone.utc)
 
-    timestamp = "00:01"
-    schedule.daily(DT.time(hour=0, minute=0, second=1, tzinfo=tz_sf), get_court_reservation, args=(username, password, time_slot))
-    
+    schedule.weekly([Tuesday(DT.time(hour=19, minute=0, second=1, tzinfo=tz_sf))], get_court_reservation, args=(username, password, time_slot))
     print(schedule)
 
-    print(f"Request court reservation every day at {timestamp}")
+    print(f"Request court reservation every day...")
     while True:
         schedule.exec_jobs()
         time.sleep(1)
