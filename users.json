@@ -1,0 +1,17 @@
+{
+    "neilnie": {
+        "type": "member",
+        "confirmed": false,
+        "id": 470522,
+        "text": "Neil Nie",
+        "isMyself": true
+    },
+
+    "auspatel": {
+        "type": "member",
+        "isMyself": true,
+        "text": "Austin Patel",
+        "confirmed": true,
+        "id": 491194
+    }
+}

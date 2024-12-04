@@ -4,8 +4,9 @@ import json
 from termcolor import colored
 import datetime as DT
 from scheduler import Scheduler
-from scheduler.trigger.core import Tuesday
+from scheduler.trigger.core import Tuesday, Wednesday
 import time
+import pytz
 
 
 LOGIN_URL = "https://api.ussquash.com/clublocker_login"
@@ -21,7 +22,7 @@ def get_date_week_from_today_string():
     return week_future
 
 
-def get_court_reservation_on_schedule(username: str, password: str, time_slot):
+def get_court_reservation_on_schedule(username: str, password: str, time_slot, now: bool = False):
     """_summary_
 
     Args:
@@ -33,24 +34,24 @@ def get_court_reservation_on_schedule(username: str, password: str, time_slot):
     print("verifying your login information")
     verify_login(username, password)
 
-    tz_sf = DT.timezone(DT.timedelta(hours=-7))
+    if now:
+        get_court_reservation(username, password, time_slot)
+    else:
+        tz_sf = pytz.timezone("America/Los_Angeles")
+        schedule = Scheduler(tzinfo=tz_sf)
+        schedule.weekly([Wednesday(DT.time(hour=19, minute=0, second=1, tzinfo=tz_sf))], get_court_reservation, args=(username, password, time_slot))
+        print(schedule)
 
-    schedule = Scheduler(tzinfo=DT.timezone.utc)
-
-    schedule.weekly([Tuesday(DT.time(hour=19, minute=0, second=1, tzinfo=tz_sf))], get_court_reservation, args=(username, password, time_slot))
-    print(schedule)
-
-    print(f"Request court reservation every day...")
-    while True:
-        schedule.exec_jobs()
-        time.sleep(1)
+        print(f"Request court reservation every day...")
+        while True:
+            schedule.exec_jobs()
+            time.sleep(1)
 
 
 def verify_login(username: str, password: str):
     payload = f"backTo=stanfordtennis.clublocker.com&customLogin=stanfordtennis&username={username}%40stanford.edu&password={password}"
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Cookie": "USSQ-API-SESSION=s%3A_R5-cmtx4Rpftj_TeZVpgfxCw-oEz7WY.kJH3RlHC0u2j%2BAbnTRuQABwew70JetPwfRi9NSbyajw",
     }
 
     response = requests.request(
@@ -58,7 +59,7 @@ def verify_login(username: str, password: str):
     )
 
     try:
-        access_token = response.text.split("access_token=")[1].split("&")[0]
+        _ = response.text.split("access_token=")[1].split("&")[0]
     except Exception as e:
         print(
             colored("Failed to login. Please check your username and password.", "red")
@@ -102,6 +103,9 @@ def get_court_reservation(username: str, password: str, slot: int):
     elif slot == 1:
         slot = "21:00-22:00"
 
+    with open("users.json", "r") as f:
+        users = json.load(f)
+
     # =========
     payload = json.dumps(
         {
@@ -114,13 +118,7 @@ def get_court_reservation(username: str, password: str, slot: int):
             "isPrivate": True,
             "notes": [],
             "players": [
-                {
-                    "type": "member",
-                    "confirmed": False,
-                    "id": 470522,
-                    "text": "Neil Nie",
-                    "isMyself": True,
-                },
+                users[username],
                 {
                     "type": "fill",
                     "text": "Let other players join this reservation",
